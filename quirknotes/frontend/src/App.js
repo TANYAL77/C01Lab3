@@ -38,13 +38,53 @@ function App() {
     getNotes()
   }, [])
 
-  const deleteNote = (entry) => {
-    // Code for DELETE here
+
+  const deleteNote = async (noteId) => {
+    if (!noteId) {
+      console.log("No note ID provided for deletion.");
+      alert("Cannot delete note without an ID.");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`http://localhost:4000/deleteNote/${noteId}`, { method: "DELETE" });
+      
+      if (!response.ok) {
+        const errorMessage = `Error ${response.status}: Failed to delete the note`;
+        console.log(errorMessage);
+        alert(errorMessage);
+        return;
+      }
+  
+      // If the delete was successful, update the state
+      deleteNoteState(noteId);
+      alert("Note deleted successfully.");
+    } catch (error) {
+      console.log("Fetch function failed:", error);
+      alert("Failed to delete the note. Please try again.");
+    }
   }
 
-  const deleteAllNotes = () => {
-    // Code for DELETE all notes here
-  }
+
+  const deleteAllNotes = async () => {
+    try {
+      const response = await fetch("http://localhost:4000/deleteAllNotes", { method: "DELETE" });
+  
+      if (!response.ok) {
+        const errorMessage = `Error ${response.status}: Failed to delete all notes`;
+        console.log(errorMessage);
+        alert(errorMessage);
+        return;
+      }
+  
+      const data = await response.json();
+      alert(data.response);
+      deleteAllNotesState();
+    } catch (error) {
+      console.error("Fetch function failed:", error);
+      alert("Failed to delete all notes. Please try again.");
+    }
+  };
 
   
   // -- Dialog functions --
@@ -72,17 +112,25 @@ function App() {
     setNotes((prevNotes) => [...prevNotes, {_id, title, content}])
   }
 
-  const deleteNoteState = () => {
-    // Code for modifying state after DELETE here
+  const deleteNoteState = (noteId) => {
+    setNotes((prevNotes) => prevNotes.filter(note => note._id !== noteId));
   }
+
 
   const deleteAllNotesState = () => {
-    // Code for modifying state after DELETE all here
+    setNotes([]);
   }
+  
 
   const patchNoteState = (_id, title, content) => {
-    // Code for modifying state after PATCH here
+    setNotes(prevNotes => prevNotes.map(note => {
+      if (note._id === _id) {
+          return { ...note, title: title, content: content };
+      }
+      return note;
+  }));
   }
+
 
   return (
     <div className="App">
@@ -102,7 +150,7 @@ function App() {
                 <Note
                 entry={entry} 
                 editNote={editNote} 
-                deleteNote={deleteNote}
+                deleteNote={() => deleteNote(entry._id)}
                 />
               </div>
               )
@@ -130,8 +178,8 @@ function App() {
           initialNote={dialogNote}
           closeDialog={closeDialog}
           postNote={postNoteState}
-          // patchNote={patchNoteState}
-          />
+          patchNote={patchNoteState}
+        />
 
       </header>
     </div>
